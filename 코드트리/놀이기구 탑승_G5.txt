@@ -1,0 +1,191 @@
+//쉽다. 난이도 제일 낮을듯. 구현만 제대로 하면 됨
+// 1시간 30분
+
+import java.util.*;
+import java.io.*;
+
+public class Main {
+	static int N, fRes;
+	static int[][] map;
+	static ArrayList<Person> persons = new ArrayList<>();
+	// L U R D
+	static final int[] dr = {0, -1, 0, 1};
+	static final int[] dc = {-1, 0, 1, 0};
+	static int[] score = {0, 1, 10, 100, 1000};
+	
+	public static void main(String[] args) throws Exception {
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		StringTokenizer st = new StringTokenizer(br.readLine());
+		N = Integer.parseInt(st.nextToken());
+		map = new int[N][N];
+		
+		for(int i = 0; i < N * N; i++) {
+			st = new StringTokenizer(br.readLine());
+			persons.add(new Person(
+					Integer.parseInt(st.nextToken()),
+					Integer.parseInt(st.nextToken()),
+					Integer.parseInt(st.nextToken()),
+					Integer.parseInt(st.nextToken()),
+					Integer.parseInt(st.nextToken())
+			));
+		}
+		
+		
+		//N번까지의 사람 재귀
+		int num = persons.size();
+		for(int i = 0; i < num; i++) {
+			solve(i);
+		}
+		
+		System.out.println(fRes);
+	}
+
+	static void solve(int now) {
+		int n1 = persons.get(now).n1;
+		int n2 = persons.get(now).n2;
+		int n3 = persons.get(now).n3;
+		int n4 = persons.get(now).n4;
+		//최적 위치 선정
+		actionOne(n1, n2, n3, n4, now); 
+		
+		//점수 계산
+		fRes = getScore();
+	}
+	
+	static int getScore() {
+		int res = 0;
+		for(int i = 0; i < N; i++) {
+			for(int j = 0; j < N; j++) {
+				res += getNowPosScore(i, j); //좋아하는 친구 점수 합산
+			}
+		}
+		return res;
+	}
+	
+	static int getNowPosScore(int r, int c) {
+		for(int i = 0; i < persons.size(); i++) {
+			if(persons.get(i).checkMe(map[r][c])) { //해당 포지션의 친구 리스트 찾기
+				int[]friArr = persons.get(i).getMyFriends(); //친구 리스트
+				int scoreCount = 0; //결과
+				
+				//4방탐색하기
+				for(int k = 0; k < 4; k++) {
+					int nr = r + dr[k];
+					int nc = c + dc[k];
+					if(cantGo(nr, nc)) continue; //맵 밖으로 벗어나면 스킵
+					for(int l = 0; l < friArr.length; l++) {
+						if(map[nr][nc] == friArr[l]) {
+							scoreCount++;
+						}
+					}
+				}
+				
+				return score[scoreCount];
+			}
+		}
+		
+		return 0;
+	}
+	
+	static void actionOne(int n1, int n2, int n3, int n4, int now) {
+		int maxFriend = 0; //최대 친구 있는 숫자
+		int maxR = 999, maxC = 999; //그 좌표
+		int maxEmpty = -1; //공백
+		
+		
+		for(int i = 0; i < N; i++) {
+			SOLVE:
+			for(int j = 0; j < N; j++) {
+				if(map[i][j] != 0) continue; //사람 있는 자리 스킵
+				//4방 친구 체크
+				int nowFriend = 0;
+				int nowEmpty = 0;
+				for(int k = 0; k < 4; k++) {
+					int r = i + dr[k];
+					int c = j + dc[k];
+					if(cantGo(r, c)) continue; //맵 밖으로 벗어나면 스킵
+					if(actionOneCheckMyFriend(n1, n2, n3, n4, r, c)) {
+						nowFriend++;
+						continue; //스킵
+					}
+					if(actionOneCheckEmpty(r, c)) nowEmpty++; //공백이라면 추가
+				}
+				
+				//1번 만약 현재 좌표가 최고라면 갱신
+				if(nowFriend > maxFriend) {
+					maxFriend = nowFriend;
+					maxR = i; maxC = j;
+					maxEmpty = nowEmpty;
+					continue SOLVE;
+				}
+				
+				//동등하다면 2번 조건
+				if(nowFriend == maxFriend) {
+					if(nowEmpty > maxEmpty) { //비어있는 칸이 제일 많다면
+						maxFriend = nowFriend;
+						maxR = i; maxC = j;
+						maxEmpty = nowEmpty;
+						continue SOLVE;
+					}
+					//3번 조건
+					if(nowEmpty == maxEmpty) {
+						if(i < maxR) {
+							maxFriend = nowFriend;
+							maxR = i; maxC = j;
+							maxEmpty = nowEmpty;
+							continue SOLVE;
+						}
+						//4번 조건
+						if(i == maxR) {
+							if(j < maxC) {
+								maxFriend = nowFriend;
+								maxR = i; maxC = j;
+								maxEmpty = nowEmpty;
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		//값 저장
+		map[maxR][maxC] = persons.get(now).me;
+	}
+	
+	static boolean actionOneCheckEmpty(int r, int c) {
+		if(map[r][c] == 0) return true;
+		return false;
+	}
+	
+	static boolean actionOneCheckMyFriend(int n1, int n2, int n3, int n4, int r, int c) {
+		if(map[r][c] == n1 || map[r][c] == n2 || map[r][c] == n3 || map[r][c] == n4) return true;
+		return false;
+	}
+	
+	static boolean cantGo(int r, int c) {
+		if(r < 0 || c < 0 || r >= N || c >= N) return true;
+		return false;
+	}
+	
+}
+
+class Person {
+	int me;
+	int n1, n2, n3, n4;
+	Person(int me, int n1, int n2, int n3, int n4) {
+		this.me = me;
+		this.n1 = n1;
+		this.n2 = n2;
+		this.n3 = n3;
+		this.n4 = n4;
+	}
+	
+	boolean checkMe(int val) {
+		if(me == val) return true;
+		return false;
+	}
+	
+	int[] getMyFriends() {
+		return new int[] {n1, n2, n3, n4};
+	}
+}
