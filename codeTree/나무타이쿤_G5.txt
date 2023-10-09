@@ -1,0 +1,186 @@
+풀이 시간 1시간 30분 (Fail)
+디버깅 찾을 수가 없어 포기 : 다음 문제부터는 모듈화를 조금 더 확실히 할 것
+쉬워보여서 안일하게 했다가 시간 내 못풀을 것 같아 포기하였음
+dx dy 분리하여서 사용할 것
+
+package codeTree;
+
+/*
+ 1. 영양제 : 높이 1 증가, 씨앗일 경우 부화
+ 2. 초기 영양제는 nxn 좌하단 2x2에 존재
+ 
+ 3. 영양제 이동 규칙 [우 우상 상 좌상 좌 좌하 하 하우]
+ 격자를 넘어가면 반대편으로 이동 : 중요
+ 
+ 1년 단계 
+ - 영양제 규칙에 따라 이동
+ - 이동 후 영양제 투입 이후 영양제는 사라짐
+ - 영양제 투입 땅의 대각선 인접에 높이가 1이상인 경우 성장 (격자 벗어남 x)
+   -> 이때 특수 영양제가 있는 땅의 리브로수는 높이가 1만큼 증가하고 
+   -> 대각선으로 인접한 높이 1 이상의 리브로수의 개수 만큼 높이가 증가합니다.
+ - 이후 영양제 투입 땅 제외하고 높이가 2 이상인 땅 커팅하고 거기 특수 영양제 투입
+ */
+
+import java.util.*;
+import java.io.*;
+public class G5_나무타이쿤 {
+	static int N, M, d, DnP[][];
+	static int[] tempArr = new int[2]; //rc 받을 임시 배열
+	
+	static int[][] map; //실제 필드
+	static boolean[][] grow, tempGrow; //영양제
+	static final int[][] D = new int[][] 
+			{
+		{0, 1},{-1, 1},
+		{-1, 0},{-1, -1},
+		{0, -1},{1, -1},
+		{1, 0},{1, 1}
+		};
+
+	public static void main(String[] args) throws Exception {
+		//스캔 후 결과
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out));
+		
+		StringTokenizer st = new StringTokenizer(br.readLine());
+		N = Integer.parseInt(st.nextToken());
+		M = Integer.parseInt(st.nextToken());
+		map = new int[N][N]; //Map
+		grow = new boolean[N][N]; //영양제
+		DnP = new int[M][2]; //년도별 이동 규칙
+		
+		//입력값 파싱
+		for(int i = 0; i < N; i++) {
+			st = new StringTokenizer(br.readLine());
+			for(int j = 0; j < N; j++) {
+				map[i][j] = Integer.parseInt(st.nextToken());
+			}
+		}
+		
+		//년도별 이동 규칙
+		for(int i = 0; i < M; i++) {
+			st = new StringTokenizer(br.readLine());
+			DnP[i][0] = Integer.parseInt(st.nextToken()) - 1; //격자 이동 방향은 인덱스 고려
+			DnP[i][1] = Integer.parseInt(st.nextToken());
+		}
+		
+		//첫 년도 좌하단 영양제 투입
+		grow[N - 1][0] = true;
+		grow[N - 1][1] = true;
+		grow[N - 2][0] = true;
+		grow[N - 2][1] = true;
+		
+		//M년동안 반복
+		for(int i = 0; i < M; i++) {
+			solve(i);
+		}
+		
+		//정산
+		int res = 0;
+		for(int i = 0; i < N; i++) {
+			for(int j = 0; j < N; j++) {
+				res += map[i][j];
+			}
+		}
+		bw.write(res + "\n");
+		bw.close();
+	}
+	
+	static void solve(int year) {
+		//규칙 만들기(격자 넘어갈때)
+		
+		moveGrow(year); //영양제 년도별 규칙 따라 이동 후 moveRole 수행, 영양제 필드 변경
+		plantUp();//영양제 있는 필드 성장 (대각선 구별 필)
+		cutAndNewGrow();//해당 영양제 필드 제외하고 2이상 높이 잘라내고 영양제 필드 생성
+	}
+	static void cutAndNewGrow() {
+		//tempGrow 제외, 높이 2이상 커팅 후 영양제 심기
+		for(int i = 0; i < N; i++) {
+			for(int j = 0; j < N; j++) {
+				//이번 년도에 특수영양제 땅이면 해당 땅 영양제 제거
+				if(tempGrow[i][j]) continue;
+				if(map[i][j] >= 2) { //커팅 후 영양제 투입
+					map[i][j] -= 2;
+					grow[i][j] = true;
+				}
+			}
+		}
+		
+	}
+	static void plantUp() {
+		//특수 영양제 필드 구별 => tempGrow
+		//성장 :  특수 영양제가 있는 땅의 리브로수는 높이가 1만큼 증가하고 대각선으로 인접한 높이 1 이상의 리브로수의 개수 만큼 높이가 증가합니다.
+		for(int i = 0; i < N; i++) {
+			for(int j = 0; j < N; j++) {
+				if(tempGrow[i][j]) {
+					int count = 1; //자랄 높이 (기본 성장 1)
+					count += findCrossTree(i - 1, j - 1); //좌상
+					count += findCrossTree(i - 1, j + 1); //우상
+					count += findCrossTree(i + 1, j - 1); //좌하
+					count += findCrossTree(i + 1, j + 1); //우하
+					map[i][j] += count;
+				}
+			}
+		}
+	}
+	
+	static int findCrossTree(int r, int c) {
+		//유효하면 1, 아닐 경우 0 리턴
+		if(cantGo(r, c) || map[r][c] < 1) return 0; //인덱스 없음 || 대각선이 높이가 1 미만임
+		return 1;
+	}
+	
+	static void moveGrow(int year) {
+		int p = DnP[year][0]; //이동 방향
+		int d = DnP[year][1]; //이동 수
+		//모든 격자 스캔하여 pnd에 따라 유효한 영양제 이동, 단 이후 누적될 수 있으니 미리 임시 배열에 보관
+		tempGrow = new boolean[N][N]; //임시맵
+		for(int i = 0; i < N; i++) {
+			for(int j = 0; j < N; j++) {
+				if(grow[i][j]) { //영양제 이동
+					int r = i + (D[p][0] * d);
+					int c = j + (D[p][1] * d);
+					tempArr = moveRole(r, c);//이동 후 moveRole에 따라 재정비
+					System.out.println(r + " " + c);
+					tempGrow[tempArr[0]][tempArr[1]] = true; //임시 맵으로 보관
+				}
+			}
+		}
+	
+		grow = new boolean[N][N]; //이동 후 초기화
+	}
+	
+	//영양제 이동 규칙
+	static int[] moveRole(int r, int c) {
+		//행열 각각 0 이하일 경우, 이상일 경우로 구분하여 변환 후 리턴
+		if(r < 0) {
+		    r = r % N;
+		    r = N + r; // 차이값만큼 이동
+		    if(r == N) r = 0;
+		}
+		else if(r >= N) {
+			r = r % N;
+			r = 0 + r; //차이값만큼 이동
+			if(r == N) r = 0;
+		}
+		
+		if(c < 0) {
+			c = c % N;
+			c = N + c;
+			if(c == N) c = 0;
+		}
+		else if(c >= N) {
+			c = c % N;
+			c = 0 + c;
+			if(c == N) c = 0;
+		}
+		
+		return new int[] {r, c};
+	}
+	
+	static boolean cantGo(int r, int c) {
+		if(r < 0 || c < 0 || r >= N || c >= N) return true;
+		return false;
+	}
+
+}
