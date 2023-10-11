@@ -1,192 +1,192 @@
-package ÄÚµåÆ®¸®;
-
-import java.io.*;
-import java.util.*;
-
-public class ¿øÀÚÃæµ¹_G4 {
-	static int N, M, K, res;
-	static Field[][] map;
-	static final int dr[] = {-1, -1, 0, 1, 1, 1, 0, -1};
-	static final int dc[] = {0, 1, 1, 1, 0, -1, -1, -1};
-	static ArrayDeque<Atom> tempQueue = new ArrayDeque<>();
-	
-	public static void main(String[] args) throws Exception {
-		//ÀÔ·Â
-		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-		StringTokenizer st = new StringTokenizer(br.readLine());
-		N = Integer.parseInt(st.nextToken());
-		M = Integer.parseInt(st.nextToken());
-		K = Integer.parseInt(st.nextToken());
-		map = new Field[N][N];
-		// Field ÀÎ½ºÅÏ½º ÃÊ±âÈ­
-		for(int r = 0; r < N; r++) {
-		    for(int c = 0; c < N; c++) {
-		        map[r][c] = new Field();
-		    }
-		}
-		
-		for(int i = 0; i < M; i++) {
-			st = new StringTokenizer(br.readLine());
-			int r = Integer.parseInt(st.nextToken()) - 1;
-			int c = Integer.parseInt(st.nextToken()) - 1;
-			int m = Integer.parseInt(st.nextToken());
-			int s = Integer.parseInt(st.nextToken());
-			int d = Integer.parseInt(st.nextToken());
-			map[r][c].atoms.add(new Atom(r, c, m, s, d)); //ÇØ´ç ¸ÊÀÇ ÇÊµå ¸®½ºÆ®¿¡ ¿øÀÚ Ãß°¡
-		}
-		
-		solve(); //¸ÞÀÎ ·ÎÁ÷
-		System.out.println(res); //°á°ú Ãâ·Â
-	}
-	
-	static void solve() {
-		//K½Ã°£¸¸Å­ ¹Ýº¹
-		for(int i = 0; i < K; i++) {
-			moveAllAtoms(); //¸ðµç ¿øÀÚ ÀÌµ¿, tempQueue¿¡ Á¤º¸ ´ã±è
-			setAllAtoms(); //tempQueue¿¡ ´ãÀº ¸ðµç ¿øÀÚ ´Ù½Ã map¿¡ »ðÀÔ
-			makeAtoms(); //¸Ê¿¡ µÎ°³ ÀÌ»ó ºÙ¾îÀÖ´Â ¿øÀÚ ÇÕ¼º ÁøÇà
-			setAllAtoms(); //tempQueue¿¡ ´ãÀº ¸ðµç ¿øÀÚ ´Ù½Ã map¿¡ »ðÀÔ
-		}
-
-		//°è»ê
-		for(int i = 0; i < N; i++) {
-			for(int j = 0; j < N; j++) {
-				if(map[i][j].atoms.size() > 0) {
-					calResult(i, j);
-				}
-			}
-		}
-	}
-	
-	static void calResult(int r, int c) {
-		int size = map[r][c].atoms.size();
-		for(int i = 0; i < size; i++) {
-			res += map[r][c].atoms.poll().m;
-		}
-	}
-	
-	static void makeAtoms_unionAndSplit_make4Atoms(boolean cross, int r, int c, int m, int s) {
-		if(cross) { //´ë°¢¼± »ý¼º
-			tempQueue.offer(new Atom(r, c, m, s, 1));
-			tempQueue.offer(new Atom(r, c, m, s, 3));
-			tempQueue.offer(new Atom(r, c, m, s, 5));
-			tempQueue.offer(new Atom(r, c, m, s, 7));
-		}
-		else { //»óÇÏÁÂ¿ì »ý¼º
-			tempQueue.offer(new Atom(r, c, m, s, 0));
-			tempQueue.offer(new Atom(r, c, m, s, 2));
-			tempQueue.offer(new Atom(r, c, m, s, 4));
-			tempQueue.offer(new Atom(r, c, m, s, 6));
-		}
-	}
-	
-	static void makeAtoms_unionAndSplit(int r, int c) {
-		//a. °°Àº Ä­¿¡ ÀÖ´Â ¿øÀÚµéÀº °¢°¢ÀÇ Áú·®°ú ¼Ó·ÂÀ» ¸ðµÎ ÇÕÇÑ ÇÏ³ªÀÇ ¿øÀÚ·Î ÇÕÃÄÁý´Ï´Ù.
-		int cross = 0; //´ë°¢
-		int udlr = 0; //»óÇÏÁÂ¿ì
-		int m = 0; //Áú·®
-		int s = 0; //¼Ó·Â
-		int size = map[r][c].atoms.size();
-		for(int i = 0; i < size; i++) {
-			Atom now = map[r][c].atoms.poll();
-			m += now.m;
-			s += now.s;
-			if(now.d % 2 == 0) udlr++;
-			else cross++;
-		}
-		
-		//b. ÀÌÈÄ ÇÕÃÄÁø ¿øÀÚ´Â 4°³ÀÇ ¿øÀÚ·Î ³ª´²Áý´Ï´Ù.
-		if(m < 5) return; //Áú·®ÀÌ 0À¸·Î °è»êµÇ´Ï ¸®ÅÏ
-		m = m / 5; //Áú·® 
-		s = s / size; //¼Ó·Â
-
-		//¹æÇâ ÃøÁ¤
-		if(cross > 0 && udlr > 0) makeAtoms_unionAndSplit_make4Atoms(true, r, c, m, s);
-		else makeAtoms_unionAndSplit_make4Atoms(false, r, c, m, s);
-	}
-	
-	static void makeAtoms() {
-		//µÎ°³ÀÌ»ó ¿øÀÚ Ã£¾Æ ÁøÇà
-		for(int i = 0; i < N; i++) {
-			for(int j = 0; j < N; j++) {
-				if(map[i][j].atoms.size() >= 2) makeAtoms_unionAndSplit(i, j);
-			}
-		}
-	}
-	
-	static void setAllAtoms() {
-		while(!tempQueue.isEmpty()) {
-			Atom now = tempQueue.poll();
-			map[now.r][now.c].atoms.offer(now);
-		}
-	}
-	
-	static void moveAllAtoms() {
-		//¹æÇâ ¼Ó·Â ÀÌµ¿, size() 1ÀÎ ÀÌ»ó ¿øÀÚ ²¨³»¼­ ÀÌµ¿ À§Ä¡ ÈÄ ÀÓ½Ã Å¥¿¡ ´ã¾Æ³õÀ½
-		for(int i = 0; i < N; i++) {
-			for(int j = 0; j < N; j++) {
-				if(map[i][j].atoms.size() > 0) { //¸¸¾à ÇØ´ç À§Ä¡¿¡ ¿øÀÚµéÀÌ Á¸ÀçÇÑ´Ù¸é
-					moveAllAtoms_putAndMove(i, j); //ÇØ´ç ¿øÀÚ ²¨³»¼­ ÀÌµ¿
-				}
-			}
-		}
-	}
-	
-	static void moveAllAtoms_putAndMove(int r, int c) {
-		//¸ðµÎ ²¨³»¼­ tempQueue·Î ÀÌ°üÇÏ´Â ÀÛ¾÷ ÁøÇà, ÀÌ °úÁ¤¿¡¼­ ÀÌµ¿ ÈÄÃ³¸®	
-		int size = map[r][c].atoms.size(); //¿øÀÚ °³¼ö¸¸Å­ ¹Ýº¹
-		for(int i = 0; i < size; i++) {
-			Atom now = map[r][c].atoms.poll(); //²¨³»±â
-			//ÀÌµ¿ÇÏ±â
-			now.r = now.r + (now.s * dr[now.d]);
-			now.c = now.c + (now.s * dc[now.d]);
-			//ÀÌ Áß ÀÎµ¦½º ³Ñ¾î°¡´Â°Å Ã³¸®ÇÏ±â
-			now.r = convertOutOfMap(now.r);
-			now.c = convertOutOfMap(now.c);
-			//tempQueue¿¡ »ðÀÔ
-			tempQueue.offer(now);
-		}
-
-	}
-
-	static int convertOutOfMap(int r) {
-		if(r < 0) {
-			r = r % N; //Nº¸´Ù Å¬ °æ¿ì ÁÙÀÓ, °á°ú°ª À½¼ö
-			r = N + r; //ÁÙÀÎ °ª¸¸Å­ ¿ÞÂÊÀ¸·Î ½ÃÇÁÆ®
-			if(r == N) r = 0; //rÀÌ 0ÀÎ °æ¿ì º¯È¯
-		}
-		else if(r >= N) {
-			r = r % N;
-		}
-		return r;
-	}
-	
-	static boolean cantGo(int r, int c) {
-		if(r < 0 || c < 0 || r >= N || c >= N) return true;
-		return false;
-	}
-}
-
-class Atom {
-	int r, c, m, s, d;
-	Atom(int r, int c, int m, int s, int d) {
-		this.r = r;
-		this.c = c;
-		this.m = m;
-		this.s = s;
-		this.d = d;
-	}
-}
-
-class Pos {
-	int r;
-	int c;
-	Pos(int r, int c) {
-		this.r = r;
-		this.c = c;
-	}
-}
-
-class Field {
-	Queue<Atom> atoms = new ArrayDeque<>();
-}
+//package ï¿½Úµï¿½Æ®ï¿½ï¿½;
+//
+//import java.io.*;
+//import java.util.*;
+//
+//public class ï¿½ï¿½ï¿½ï¿½ï¿½æµ¹_G4 {
+//	static int N, M, K, res;
+//	static Field[][] map;
+//	static final int dr[] = {-1, -1, 0, 1, 1, 1, 0, -1};
+//	static final int dc[] = {0, 1, 1, 1, 0, -1, -1, -1};
+//	static ArrayDeque<Atom> tempQueue = new ArrayDeque<>();
+//	
+//	public static void main(String[] args) throws Exception {
+//		//ï¿½Ô·ï¿½
+//		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+//		StringTokenizer st = new StringTokenizer(br.readLine());
+//		N = Integer.parseInt(st.nextToken());
+//		M = Integer.parseInt(st.nextToken());
+//		K = Integer.parseInt(st.nextToken());
+//		map = new Field[N][N];
+//		// Field ï¿½Î½ï¿½ï¿½Ï½ï¿½ ï¿½Ê±ï¿½È­
+//		for(int r = 0; r < N; r++) {
+//		    for(int c = 0; c < N; c++) {
+//		        map[r][c] = new Field();
+//		    }
+//		}
+//		
+//		for(int i = 0; i < M; i++) {
+//			st = new StringTokenizer(br.readLine());
+//			int r = Integer.parseInt(st.nextToken()) - 1;
+//			int c = Integer.parseInt(st.nextToken()) - 1;
+//			int m = Integer.parseInt(st.nextToken());
+//			int s = Integer.parseInt(st.nextToken());
+//			int d = Integer.parseInt(st.nextToken());
+//			map[r][c].atoms.add(new Atom(r, c, m, s, d)); //ï¿½Ø´ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Êµï¿½ ï¿½ï¿½ï¿½ï¿½Æ®ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ß°ï¿½
+//		}
+//		
+//		solve(); //ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+//		System.out.println(res); //ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
+//	}
+//	
+//	static void solve() {
+//		//Kï¿½Ã°ï¿½ï¿½ï¿½Å­ ï¿½Ýºï¿½
+//		for(int i = 0; i < K; i++) {
+//			moveAllAtoms(); //ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ìµï¿½, tempQueueï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
+//			setAllAtoms(); //tempQueueï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ù½ï¿½ mapï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+//			makeAtoms(); //ï¿½Ê¿ï¿½ ï¿½Î°ï¿½ ï¿½Ì»ï¿½ ï¿½Ù¾ï¿½ï¿½Ö´ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Õ¼ï¿½ ï¿½ï¿½ï¿½ï¿½
+//			setAllAtoms(); //tempQueueï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ù½ï¿½ mapï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+//		}
+//
+//		//ï¿½ï¿½ï¿½
+//		for(int i = 0; i < N; i++) {
+//			for(int j = 0; j < N; j++) {
+//				if(map[i][j].atoms.size() > 0) {
+//					calResult(i, j);
+//				}
+//			}
+//		}
+//	}
+//	
+//	static void calResult(int r, int c) {
+//		int size = map[r][c].atoms.size();
+//		for(int i = 0; i < size; i++) {
+//			res += map[r][c].atoms.poll().m;
+//		}
+//	}
+//	
+//	static void makeAtoms_unionAndSplit_make4Atoms(boolean cross, int r, int c, int m, int s) {
+//		if(cross) { //ï¿½ë°¢ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+//			tempQueue.offer(new Atom(r, c, m, s, 1));
+//			tempQueue.offer(new Atom(r, c, m, s, 3));
+//			tempQueue.offer(new Atom(r, c, m, s, 5));
+//			tempQueue.offer(new Atom(r, c, m, s, 7));
+//		}
+//		else { //ï¿½ï¿½ï¿½ï¿½ï¿½Â¿ï¿½ ï¿½ï¿½ï¿½ï¿½
+//			tempQueue.offer(new Atom(r, c, m, s, 0));
+//			tempQueue.offer(new Atom(r, c, m, s, 2));
+//			tempQueue.offer(new Atom(r, c, m, s, 4));
+//			tempQueue.offer(new Atom(r, c, m, s, 6));
+//		}
+//	}
+//	
+//	static void makeAtoms_unionAndSplit(int r, int c) {
+//		//a. ï¿½ï¿½ï¿½ï¿½ Ä­ï¿½ï¿½ ï¿½Ö´ï¿½ ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ó·ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ï³ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ú·ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½.
+//		int cross = 0; //ï¿½ë°¢
+//		int udlr = 0; //ï¿½ï¿½ï¿½ï¿½ï¿½Â¿ï¿½
+//		int m = 0; //ï¿½ï¿½ï¿½ï¿½
+//		int s = 0; //ï¿½Ó·ï¿½
+//		int size = map[r][c].atoms.size();
+//		for(int i = 0; i < size; i++) {
+//			Atom now = map[r][c].atoms.poll();
+//			m += now.m;
+//			s += now.s;
+//			if(now.d % 2 == 0) udlr++;
+//			else cross++;
+//		}
+//		
+//		//b. ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ú´ï¿½ 4ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ú·ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½.
+//		if(m < 5) return; //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 0ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ç´ï¿½ ï¿½ï¿½ï¿½ï¿½
+//		m = m / 5; //ï¿½ï¿½ï¿½ï¿½ 
+//		s = s / size; //ï¿½Ó·ï¿½
+//
+//		//ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+//		if(cross > 0 && udlr > 0) makeAtoms_unionAndSplit_make4Atoms(true, r, c, m, s);
+//		else makeAtoms_unionAndSplit_make4Atoms(false, r, c, m, s);
+//	}
+//	
+//	static void makeAtoms() {
+//		//ï¿½Î°ï¿½ï¿½Ì»ï¿½ ï¿½ï¿½ï¿½ï¿½ Ã£ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+//		for(int i = 0; i < N; i++) {
+//			for(int j = 0; j < N; j++) {
+//				if(map[i][j].atoms.size() >= 2) makeAtoms_unionAndSplit(i, j);
+//			}
+//		}
+//	}
+//	
+//	static void setAllAtoms() {
+//		while(!tempQueue.isEmpty()) {
+//			Atom now = tempQueue.poll();
+//			map[now.r][now.c].atoms.offer(now);
+//		}
+//	}
+//	
+//	static void moveAllAtoms() {
+//		//ï¿½ï¿½ï¿½ï¿½ ï¿½Ó·ï¿½ ï¿½Ìµï¿½, size() 1ï¿½ï¿½ ï¿½Ì»ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ìµï¿½ ï¿½ï¿½Ä¡ ï¿½ï¿½ ï¿½Ó½ï¿½ Å¥ï¿½ï¿½ ï¿½ï¿½Æ³ï¿½ï¿½ï¿½
+//		for(int i = 0; i < N; i++) {
+//			for(int j = 0; j < N; j++) {
+//				if(map[i][j].atoms.size() > 0) { //ï¿½ï¿½ï¿½ï¿½ ï¿½Ø´ï¿½ ï¿½ï¿½Ä¡ï¿½ï¿½ ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ñ´Ù¸ï¿½
+//					moveAllAtoms_putAndMove(i, j); //ï¿½Ø´ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ìµï¿½
+//				}
+//			}
+//		}
+//	}
+//	
+//	static void moveAllAtoms_putAndMove(int r, int c) {
+//		//ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ tempQueueï¿½ï¿½ ï¿½Ì°ï¿½ï¿½Ï´ï¿½ ï¿½Û¾ï¿½ ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ìµï¿½ ï¿½ï¿½Ã³ï¿½ï¿½	
+//		int size = map[r][c].atoms.size(); //ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å­ ï¿½Ýºï¿½
+//		for(int i = 0; i < size; i++) {
+//			Atom now = map[r][c].atoms.poll(); //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//			//ï¿½Ìµï¿½ï¿½Ï±ï¿½
+//			now.r = now.r + (now.s * dr[now.d]);
+//			now.c = now.c + (now.s * dc[now.d]);
+//			//ï¿½ï¿½ ï¿½ï¿½ ï¿½Îµï¿½ï¿½ï¿½ ï¿½Ñ¾î°¡ï¿½Â°ï¿½ Ã³ï¿½ï¿½ï¿½Ï±ï¿½
+//			now.r = convertOutOfMap(now.r);
+//			now.c = convertOutOfMap(now.c);
+//			//tempQueueï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+//			tempQueue.offer(now);
+//		}
+//
+//	}
+//
+//	static int convertOutOfMap(int r) {
+//		if(r < 0) {
+//			r = r % N; //Nï¿½ï¿½ï¿½ï¿½ Å¬ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+//			r = N + r; //ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Å­ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Æ®
+//			if(r == N) r = 0; //rï¿½ï¿½ 0ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½È¯
+//		}
+//		else if(r >= N) {
+//			r = r % N;
+//		}
+//		return r;
+//	}
+//	
+//	static boolean cantGo(int r, int c) {
+//		if(r < 0 || c < 0 || r >= N || c >= N) return true;
+//		return false;
+//	}
+//}
+//
+//class Atom {
+//	int r, c, m, s, d;
+//	Atom(int r, int c, int m, int s, int d) {
+//		this.r = r;
+//		this.c = c;
+//		this.m = m;
+//		this.s = s;
+//		this.d = d;
+//	}
+//}
+//
+//class Pos {
+//	int r;
+//	int c;
+//	Pos(int r, int c) {
+//		this.r = r;
+//		this.c = c;
+//	}
+//}
+//
+//class Field {
+//	Queue<Atom> atoms = new ArrayDeque<>();
+//}
